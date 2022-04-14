@@ -6,7 +6,6 @@ def parse_line(line: str) -> list:
     items = []
     quotes = 0
     for i, char in enumerate(line):
-        # print(quotes)
         if char == ',' and not quotes:
             items.append(line[start_i:i])
             start_i = i+1
@@ -15,8 +14,7 @@ def parse_line(line: str) -> list:
             quotes += 1
 
         try:
-            if start_i != i and line[i+1] == ',' and quotes % 2 != 0 and quotes > 1:
-                print(quotes, char)
+            if line[i+1] == ',' and quotes % 2 == 0:
                 quotes = 0
         except IndexError:
             break
@@ -35,12 +33,22 @@ def match_headers(h1: list, h2: list, col_name: str) -> tuple:
 def headers_to_dict(lst: list):
     headers_dict = {}
     for i in lst:
-        headers_dict[i] = None
+        headers_dict[i] = 'None'
     return headers_dict
 
 
-def print_dict_in_order(merged_dict: dict, key_col: str):
-    pass
+def add_to_dict(list_of_items: list, keys_dict: dict):
+    new_dict = {}
+    for item, key in zip(list_of_items, keys_dict.keys()):
+        new_dict[key] = item
+    return new_dict
+
+
+def print_dict_in_order(merged_dict: dict, order: list):
+    out_line = ''
+    for col in order:
+        out_line += ',' + merged_dict[col]
+    print(out_line[1:])
 
 
 def main():
@@ -56,38 +64,43 @@ def main():
         args['path1'], args['path2'] = args['path2'], args['path1']
 
     with open(args['path1'], 'r') as f1, open(args['path2'], 'r') as f2:
-        f1_headers = headers_to_dict(parse_line( f1.readline().rstrip() ))
-        f2_headers = headers_to_dict(parse_line( f2.readline().rstrip() ))
-        print(f1_headers)
-        print(f2_headers)
+        f1_headers_list = parse_line(f1.readline().rstrip())
+        f1_headers = headers_to_dict(f1_headers_list)
+        f2_headers_list = parse_line(f2.readline().rstrip())
+        f2_headers = headers_to_dict(f2_headers_list)
+        merged_headers = f1_headers
+        merged_headers.update(f2_headers)
+        headers_order = [args['col_name']]
+        headers_order += [h for h in f1_headers_list if h not in headers_order]
+        headers_order += [h for h in f2_headers_list if h not in headers_order]
+
+        print(','.join(headers_order))
 
         for f1_line in f1:
             f1_line_list = parse_line(f1_line.rstrip())
-            f1_items = {}
-            for key1, item1 in zip(f1_headers.keys(), f1_line_list):
-                f1_items[key1] = item1
+            f1_items = add_to_dict(f1_line_list, f1_headers)
+
             matched = False
             for f2_line in f2:
                 f2_line_list = parse_line(f2_line.rstrip())
-                f2_items = {}
-                for key2, item2 in zip(f2_headers.keys(), f2_line_list):
-                    f2_items[key2] = item2
+                f2_items = add_to_dict(f2_line_list, f2_headers)
 
                 if f1_items[args['col_name']] == f2_items[args['col_name']]:
-                    f1_items.update(f2_items)
-                    print(f1_items)
+                    new = f1_items
+                    new.update(f2_items)
+                    print_dict_in_order(new, headers_order)
                     matched = True
                     break
             if not matched:
-                if args['join_type'] == 'left':
-                    f2_headers.update(f1_items)
-                    print(f2_headers)
-                elif args['join_type'] == 'right':
-                    f1_headers.update(f2_items)
-                    print(f1_headers)
+                if args['join_type'] != 'inner':
+                    new = f2_headers
+                    new.update(f1_items)
+                    print_dict_in_order(new, headers_order)
 
             f2.seek(0)
 
 
 if __name__ == '__main__':
     main()
+    # print(parse_line('22782,26980,ios,10.2,"iPhon"",e7,2",2'))
+    # print('22782,26980,ios,10.2,"iPhon,e7,2",2')
