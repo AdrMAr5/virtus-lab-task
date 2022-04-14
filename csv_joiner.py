@@ -10,6 +10,15 @@ class InvalidModeError(Exception):
         return f'{self.message}. Expected: {self.expected}'
 
 
+class InvalidColumnError(Exception):
+    def __init__(self, col):
+        self.col = col
+        self.message = 'Column "{0}" does not appear in any file'
+
+    def __str__(self):
+        return self.message.format(self.col)
+
+
 class Parser:
     @staticmethod
     def parse_line(line: str) -> list:
@@ -73,6 +82,9 @@ class Header:
 
     @staticmethod
     def set_order(h1, h2, key_col):
+        if key_col not in h1.list and key_col not in h2.list:
+            raise InvalidColumnError(key_col)
+
         headers_order = [key_col]
         headers_order += [h for h in h1.list if h not in headers_order]
         headers_order += [h for h in h2.list if h not in headers_order]
@@ -81,11 +93,13 @@ class Header:
 
 class Joiner:
     @staticmethod
-    def join(path1: str, path2: str, key_col: str, join_type: str):
+    def join(path1: str, path2: str, key_col: str, join_type: str = 'inner'):
         try:
             modes = {'inner', 'left', 'right'}
             if join_type not in modes:
                 raise InvalidModeError(modes)
+            if join_type == 'right':
+                path1, path2 = path2, path1
 
             with open(path1, 'r') as f1, open(path2, 'r') as f2:
                 f1_header = Header(f1.readline())
@@ -117,8 +131,14 @@ class Joiner:
                             Line.print_line(to_print_dict, Header.order)
                     f2.seek(0)
 
+        except KeyError as e:
+            sys.stderr.write(e.__str__())
+
         except FileNotFoundError as e:
             sys.stderr.write(e.__str__())
 
         except InvalidModeError as e:
+            sys.stderr.write(e.__str__())
+
+        except InvalidColumnError as e:
             sys.stderr.write(e.__str__())
