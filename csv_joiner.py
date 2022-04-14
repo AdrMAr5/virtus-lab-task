@@ -13,7 +13,7 @@ class InvalidModeError(Exception):
 class InvalidColumnError(Exception):
     def __init__(self, col):
         self.col = col
-        self.message = 'Column "{0}" does not appear in any file'
+        self.message = 'Column "{0}" does not appear in one/both files'
 
     def __str__(self):
         return self.message.format(self.col)
@@ -82,7 +82,7 @@ class Header:
 
     @staticmethod
     def set_order(h1, h2, key_col):
-        if key_col not in h1.list and key_col not in h2.list:
+        if key_col not in h1.list or key_col not in h2.list:
             raise InvalidColumnError(key_col)
 
         headers_order = [key_col]
@@ -135,6 +135,9 @@ class Joiner:
             sys.stderr.write(e.__str__())
 
         except FileNotFoundError as e:
+            sys.stderr.write(e.__str__())
+
+        except TypeError as e:
             sys.stderr.write(e.__str__())
 
         except InvalidModeError as e:
