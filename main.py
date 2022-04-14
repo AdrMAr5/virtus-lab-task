@@ -12,13 +12,17 @@ class ArgumentsException(Exception):
 
 
 def main():
-    args = ['user_device.csv', 'user_usage.csv', 'use_id']
-    # args = sys.argv
+    try:
+        args = ['user_device.csv', 'user_usage.csv', 'use_id', 'inne']
+        # args = sys.argv
 
-    if len(args) != 4:
-        raise ArgumentsException(len(args))
+        if len(args) != 4:
+            raise ArgumentsException(len(args))
 
-    Joiner.join(*args)
+        Joiner.join(*args)
+
+    except ArgumentsException as e:
+        sys.stderr.write(e.__str__())
 
 
 if __name__ == '__main__':
